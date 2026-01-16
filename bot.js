@@ -4,7 +4,7 @@ const { Authflow } = require('prismarine-auth');
 const flow = new Authflow('ShotDevsBot', './auth_cache');
 
 const client = bedrock.createClient({
-  host: 'donutsmp.net',
+  host: 'play.nethergames.org',
   port: 19132,
   authFlow: flow,
   offline: false,

@@ -1,0 +1,22 @@
+{
+  "name": "bedrock-afk-bot",
+  "version": "1.0.0",
+  "description": "Minecraft Bedrock AFK bot with automatic AFK room switching",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "keywords": [
+    "minecraft",
+    "bedrock",
+    "afk",
+    "bot",
+    "bedrock-protocol"
+  ],
+  "author": "ShotDevs",
+  "license": "MIT",
+  "dependencies": {
+    "bedrock-protocol": "^3.44.0",
+    "prismarine-auth": "^2.6.0"
+  }
+}

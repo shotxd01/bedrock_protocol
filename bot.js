@@ -8,7 +8,7 @@ const client = bedrock.createClient({
   port: 19132,
   authFlow: flow,
   offline: false,
-  version: '1.21.132'
+  version: '1.21.130'
 });
 
 let afkRoom = 2;

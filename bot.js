@@ -1,72 +1,93 @@
 const bedrock = require('bedrock-protocol');
 const { Authflow } = require('prismarine-auth');
 
-const flow = new Authflow('ShotDevsBot', './auth_cache');
+// --- CONFIGURATION ---
+const OPTIONS = {
+    host: 'donutsmp.net',
+    port: 19132,
+    username: 'ShotDevsBot',
+    version: '1.21.130', // Ensure this matches the server exactly
+    offline: false
+};
 
-const client = bedrock.createClient({
-  host: 'play.nethergames.org',
-  port: 19132,
-  authFlow: flow,
-  offline: false,
-  version: '1.21.130'
-});
+const flow = new Authflow(OPTIONS.username, './auth_cache');
 
 let afkRoom = 2;
 let joined = false;
 
-client.on('join', () => {
-  console.log('✅ Logged in');
-});
+function createBot() {
+    console.log(`🚀 Connecting to ${OPTIONS.host}:${OPTIONS.port}...`);
 
-client.once('spawn', () => {
-  console.log('✅ Spawned');
-  tryAfkRoom();
-});
+    const client = bedrock.createClient({
+        ...OPTIONS,
+        authFlow: flow
+    });
 
-client.on('text', (packet) => {
-  const msg = packet.message.toLowerCase();
+    // --- PACKET DEBUGGING ---
+    // Uncomment the line below if you want to see every packet name (very spammy)
+    // client.on('packet', (packet) => console.log('Received:', packet.data.name));
 
-  if (msg.includes('full') && !joined) {
-    afkRoom++;
+    client.on('join', () => {
+        console.log('✅ Server handshake complete. Joining world...');
+    });
 
-    if (afkRoom > 16) {
-      console.log('❌ All AFK rooms are full');
-      return;
+    client.once('spawn', () => {
+        console.log('✅ Spawned in world!');
+        // Small delay to ensure the server is ready to accept commands
+        setTimeout(tryAfkRoom, 3000);
+    });
+
+    client.on('text', (packet) => {
+        const msg = packet.message.toLowerCase();
+        const source = packet.source_name;
+
+        // Log incoming chat so you can see what's happening
+        console.log(`[CHAT] ${source}: ${packet.message}`);
+
+        if (msg.includes('full') && !joined) {
+            afkRoom++;
+            if (afkRoom > 16) {
+                console.log('❌ All AFK rooms are full. Staying put.');
+                return;
+            }
+            console.log(`⚠ AFK Room ${afkRoom - 1} full, trying /afk ${afkRoom}...`);
+            setTimeout(tryAfkRoom, 2000);
+        }
+
+        if (msg.includes('joined') || msg.includes('teleported') || msg.includes('afk room')) {
+            joined = true;
+            console.log(`✨ Success: Now in AFK Room ${afkRoom}`);
+        }
+    });
+
+    function tryAfkRoom() {
+        console.log(`➡ Sending: /afk ${afkRoom}`);
+        sendChat(`/afk ${afkRoom}`);
     }
 
-    console.log(`⚠ AFK ${afkRoom - 1} full, trying /afk ${afkRoom}`);
-    setTimeout(tryAfkRoom, 2000);
-  }
+    function sendChat(message) {
+        client.queue('text', {
+            type: 'chat',
+            needs_translation: false,
+            source_name: client.username,
+            xuid: '',
+            platform_chat_id: '',
+            message
+        });
+    }
 
-  if (
-    msg.includes('joined') ||
-    msg.includes('teleported') ||
-    msg.includes('afk room')
-  ) {
-    joined = true;
-    console.log(`✅ Successfully joined AFK ${afkRoom}`);
-  }
-});
+    // --- ERROR HANDLING & AUTO-RECONNECT ---
+    client.on('error', (err) => {
+        console.error('❗ Client Error:', err);
+    });
 
-function tryAfkRoom() {
-  console.log(`➡ Sending: /afk ${afkRoom}`);
-  sendChat(`/afk ${afkRoom}`);
+    client.on('close', (reason) => {
+        console.log(`❌ Disconnected: ${reason}`);
+        joined = false;
+        console.log('🔄 Reconnecting in 10 seconds...');
+        setTimeout(createBot, 10000);
+    });
 }
 
-function sendChat(message) {
-  client.queue('text', {
-    type: 'chat',
-    needs_translation: false,
-    source_name: client.username,
-    xuid: '',
-    platform_chat_id: '',
-    message
-  });
-}
-
-client.on('close', () => {
-  console.log('❌ Disconnected');
-  process.exit(1);
-});
-
-client.on('error', console.log);
+// Start the bot
+createBot();
